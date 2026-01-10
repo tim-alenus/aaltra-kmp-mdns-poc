@@ -36,7 +36,12 @@ import Network
                 case .posix(let code) where code == .EPERM:
                     onError("Network permission denied. Please allow local network access in Settings.")
                 case .dns(let dnsError):
-                    onError("DNS error: \(dnsError)")
+                    // kDNSServiceErr_NoAuth = -65555
+                    if dnsError == -65555 {
+                        onError("Network permission denied. Please allow local network access in Settings.")
+                    } else {
+                        onError("DNS error: \(dnsError)")
+                    }
                 default:
                     onError("Browser failed: \(error.localizedDescription)")
                 }
@@ -47,7 +52,12 @@ import Network
                 // Browser was cancelled
                 break
             case .waiting(let error):
-                onError("Browser waiting: \(error.localizedDescription)")
+                // Also check waiting state for permission errors
+                if case .dns(let dnsError) = error, dnsError == -65555 {
+                    onError("Network permission denied. Please allow local network access in Settings.")
+                } else {
+                    onError("Browser waiting: \(error.localizedDescription)")
+                }
             default:
                 break
             }
