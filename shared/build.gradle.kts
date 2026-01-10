@@ -34,18 +34,45 @@ kotlin {
     val xcfName = "sharedKit"
 
     iosX64 {
+        compilations.getByName("main") {
+            cinterops {
+                val nwbrowser by creating {
+                    defFile(project.file("src/nativeInterop/cinterop/nwbrowser.def"))
+                    packageName("eu.aaltra.kmp.mdns.nwbrowser")
+                    includeDirs(project.file("src/nativeInterop/swift"))
+                }
+            }
+        }
         binaries.framework {
             baseName = xcfName
         }
     }
 
     iosArm64 {
+        compilations.getByName("main") {
+            cinterops {
+                val nwbrowser by creating {
+                    defFile(project.file("src/nativeInterop/cinterop/nwbrowser.def"))
+                    packageName("eu.aaltra.kmp.mdns.nwbrowser")
+                    includeDirs(project.file("src/nativeInterop/swift"))
+                }
+            }
+        }
         binaries.framework {
             baseName = xcfName
         }
     }
 
     iosSimulatorArm64 {
+        compilations.getByName("main") {
+            cinterops {
+                val nwbrowser by creating {
+                    defFile(project.file("src/nativeInterop/cinterop/nwbrowser.def"))
+                    packageName("eu.aaltra.kmp.mdns.nwbrowser")
+                    includeDirs(project.file("src/nativeInterop/swift"))
+                }
+            }
+        }
         binaries.framework {
             baseName = xcfName
         }
@@ -59,7 +86,10 @@ kotlin {
     sourceSets {
         commonMain {
             dependencies {
+
                 implementation(libs.kotlin.stdlib)
+                implementation(libs.kotlinx.coroutines.core)
+
                 // Add KMP dependencies here
             }
         }
