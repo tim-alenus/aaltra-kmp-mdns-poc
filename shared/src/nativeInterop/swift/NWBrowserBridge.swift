@@ -2,7 +2,7 @@ import Foundation
 import Network
 
 
-@objc public class NWBrowserBridge: NSObject {
+@objc(NWBrowserBridge) public class NWBrowserBridge: NSObject {
     
     private var browser: NWBrowser?
     private var serviceQueue: DispatchQueue

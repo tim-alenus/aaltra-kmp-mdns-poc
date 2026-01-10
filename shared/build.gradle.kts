@@ -24,6 +24,38 @@ kotlin {
         }
     }
 
+    val swiftCompile = tasks.register<Exec>("compileSwift") {
+        val sdkName = "iphoneos" // or "iphonesimulator" for simulator
+        val targetArch = "arm64-apple-ios15.0"
+
+        // 2. Resolve paths to Strings immediately
+        val buildDirPath = project.layout.buildDirectory.get().asFile.absolutePath
+        val outputFile = "$buildDirPath/swift/libNWBrowserBridge.a"
+        val swiftFile = project.file("src/nativeInterop/swift/NWBrowserBridge.swift").absolutePath
+
+        // Get the SDK path dynamically
+        val sdkPath = providers.exec {
+            commandLine("xcrun", "--sdk", sdkName, "--show-sdk-path")
+        }.standardOutput.asText.get().trim()
+
+        doFirst {
+            file("${buildDirPath}/swift").mkdirs()
+        }
+
+        commandLine(
+            "xcrun", "-sdk", sdkName, "swiftc",
+            "-emit-library",
+            "-static",
+            "-target", targetArch,
+            "-sdk", sdkPath,
+            swiftFile,
+            "-o", outputFile,
+            "-module-name", "NWBrowserBridge",
+            "-Xfrontend", "-serialize-debugging-options"
+        )
+        outputs.file(outputFile)
+    }
+
     // For iOS targets, this is also where you should
     // configure native binary output. For more information, see:
     // https://kotlinlang.org/docs/multiplatform-build-native-binaries.html#build-xcframeworks
@@ -57,9 +89,11 @@ kotlin {
                     includeDirs(project.file("src/nativeInterop/swift"))
                 }
             }
+            tasks.named("cinteropNwbrowserIosArm64") { dependsOn(swiftCompile) }
         }
         binaries.framework {
             baseName = xcfName
+            linkerOpts("-L${layout.buildDirectory}/swift", "-lNWBrowserBridge")
         }
     }
 
