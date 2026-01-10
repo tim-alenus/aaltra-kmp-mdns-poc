@@ -30,7 +30,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
 
-const val SERVICE_TYPE = "_example._tcp"
+const val SERVICE_TYPE = "_http._tcp"
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun App() {
