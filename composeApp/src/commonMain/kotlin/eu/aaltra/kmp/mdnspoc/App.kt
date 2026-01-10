@@ -1,48 +1,126 @@
 package eu.aaltra.kmp.mdnspoc
 
-import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.ElevatedButton
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.lightColorScheme
+import androidx.compose.material3.PrimaryTabRow
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Tab
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.navigation.NavHostController
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.compose.rememberNavController
-import androidx.navigation.toRoute
-import eu.aaltra.kmp.mdnspoc.screens.detail.DetailScreen
-import eu.aaltra.kmp.mdnspoc.screens.list.ListScreen
-import kotlinx.serialization.Serializable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import eu.aaltra.kmp.mdns.shared.*
+import eu.aaltra.kmp.mdnspoc.screens.EmptyScreenContent
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.IO
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
 
-@Serializable
-object ListDestination
 
-@Serializable
-data class DetailDestination(val objectId: Int)
-
+const val SERVICE_TYPE = "_example._tcp"
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun App() {
-    MaterialTheme(
-        colorScheme = if (isSystemInDarkTheme()) darkColorScheme() else lightColorScheme()
-    ) {
-        Surface {
-            val navController: NavHostController = rememberNavController()
-            NavHost(navController = navController, startDestination = ListDestination) {
-                composable<ListDestination> {
-                    ListScreen(navigateToDetails = { objectId ->
-                        navController.navigate(DetailDestination(objectId))
-                    })
+    MaterialTheme {
+        var selectedTab by remember { mutableStateOf(0) }
+
+        Scaffold { padding ->
+            Column(
+                modifier = Modifier.fillMaxSize().padding(padding),
+            ) {
+                PrimaryTabRow(
+                    selectedTabIndex = selectedTab,
+                ) {
+                    Tab(
+                        selected = selectedTab == 0,
+                        onClick = { selectedTab = 0 },
+                        text = { Text(text = "Scan") })
+
+                    Tab(
+                        selected = selectedTab == 1,
+                        onClick = { selectedTab = 1 },
+                        text = { Text(text = "Advertise") })
                 }
-                composable<DetailDestination> { backStackEntry ->
-                    DetailScreen(
-                        objectId = backStackEntry.toRoute<DetailDestination>().objectId,
-                        navigateBack = {
-                            navController.popBackStack()
-                        }
-                    )
+
+                Column(
+                    modifier = Modifier.weight(1f),
+                ) {
+                    when (selectedTab) {
+                        0 -> ScanView()
+                        else -> EmptyScreenContent()
+                    }
                 }
             }
         }
     }
 }
+@Composable
+private fun ScanView() {
+    val scope = rememberCoroutineScope()
+    val scannedServices = remember { mutableStateMapOf<String, DiscoveredService>() }
+    var scanJob: Job? by remember { mutableStateOf(null) }
+
+    Column {
+        Row {
+            Text("Scan NSD Services")
+
+            ElevatedButton(
+                onClick = {
+                    if (scanJob != null) {
+                        scanJob?.cancel()
+                        scanJob = null
+                    } else {
+                        scannedServices.clear()
+                        scanJob =
+                            scope.launch(Dispatchers.IO) {
+                                discoverServices(SERVICE_TYPE).collect {
+                                    when (it) {
+                                        is DiscoveryEvent.Discovered -> {
+                                            scannedServices[it.service.key] = it.service
+                                            it.resolve()
+                                        }
+                                        is DiscoveryEvent.Removed -> {
+                                            scannedServices.remove(it.service.key)
+                                        }
+                                        is DiscoveryEvent.Resolved -> {
+                                            scannedServices[it.service.key] = it.service
+                                        }
+                                    }
+                                }
+                            }
+                    }
+                },
+            ) {
+                Text(if (scanJob != null) "Stop" else "Start")
+            }
+        }
+
+        LazyColumn {
+            items(scannedServices.values.toList()) {
+                ListItem(
+                    headlineContent = { Text("${it.name} (${it.host})") },
+                    supportingContent = {
+                        Column {
+                            Text("${it.type}:${it.port} (${it.addresses})")
+                            Text(it.txt.toList().joinToString { "${it.first}=${it.second?.decodeToString()}" })
+                        }
+                    },
+                )
+            }
+        }
+    }
+}
+
