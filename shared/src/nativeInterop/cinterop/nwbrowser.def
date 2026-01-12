@@ -1,7 +1,0 @@
-language = Objective-C
-headers = NWBrowserBridge.h
-headerFilter = NWBrowserBridge.h
-compilerOpts = -framework Network -framework Foundation
-linkerOpts = -framework Network -framework Foundation
-staticLibraries = libNWBrowserBridge.a
-libraryPaths = build/swift

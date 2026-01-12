@@ -1,12 +1,15 @@
+import io.github.frankois944.spmForKmp.swiftPackageConfig
+
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.androidKotlinMultiplatformLibrary)
     alias(libs.plugins.androidLint)
+    alias(libs.plugins.spm4kmp)
 }
 
 kotlin {
 
-    //TODO also correctly configure other targets. Now only iosArm64 works fully. 
+    //TODO also correctly configure other targets. Now only iosArm64 works fully.
 
     // Target declarations - add or remove as needed below. These define
     // which platforms this KMP module supports.
@@ -26,38 +29,6 @@ kotlin {
         }
     }
 
-    val swiftCompile = tasks.register<Exec>("compileSwift") {
-        val sdkName = "iphoneos" // or "iphonesimulator" for simulator
-        val targetArch = "arm64-apple-ios15.0"
-
-        // 2. Resolve paths to Strings immediately
-        val buildDirPath = project.layout.buildDirectory.get().asFile.absolutePath
-        val outputFile = "$buildDirPath/swift/libNWBrowserBridge.a"
-        val swiftFile = project.file("src/nativeInterop/swift/NWBrowserBridge.swift").absolutePath
-
-        // Get the SDK path dynamically
-        val sdkPath = providers.exec {
-            commandLine("xcrun", "--sdk", sdkName, "--show-sdk-path")
-        }.standardOutput.asText.get().trim()
-
-        doFirst {
-            file("${buildDirPath}/swift").mkdirs()
-        }
-
-        commandLine(
-            "xcrun", "-sdk", sdkName, "swiftc",
-            "-emit-library",
-            "-static",
-            "-target", targetArch,
-            "-sdk", sdkPath,
-            swiftFile,
-            "-o", outputFile,
-            "-module-name", "NWBrowserBridge",
-            "-Xfrontend", "-serialize-debugging-options"
-        )
-        outputs.file(outputFile)
-    }
-
     // For iOS targets, this is also where you should
     // configure native binary output. For more information, see:
     // https://kotlinlang.org/docs/multiplatform-build-native-binaries.html#build-xcframeworks
@@ -65,54 +36,14 @@ kotlin {
     // A step-by-step guide on how to include this library in an XCode
     // project can be found here:
     // https://developer.android.com/kotlin/multiplatform/migrate
-    val xcfName = "sharedKit"
 
-    iosX64 {
-        compilations.getByName("main") {
-            cinterops {
-                val nwbrowser by creating {
-                    defFile(project.file("src/nativeInterop/cinterop/nwbrowser.def"))
-                    packageName("eu.aaltra.kmp.mdns.nwbrowser")
-                    includeDirs(project.file("src/nativeInterop/swift"))
-                }
-            }
-        }
-        binaries.framework {
-            baseName = xcfName
-        }
-    }
+    listOf(iosX64(),
+    iosArm64(),
+    iosSimulatorArm64()).forEach { target -> target.swiftPackageConfig(cinteropName =
+    "nativeBridge") {
+        minIos = "13.0"
 
-    iosArm64 {
-        compilations.getByName("main") {
-            cinterops {
-                val nwbrowser by creating {
-                    defFile(project.file("src/nativeInterop/cinterop/nwbrowser.def"))
-                    packageName("eu.aaltra.kmp.mdns.nwbrowser")
-                    includeDirs(project.file("src/nativeInterop/swift"))
-                }
-            }
-            tasks.named("cinteropNwbrowserIosArm64") { dependsOn(swiftCompile) }
-        }
-        binaries.framework {
-            baseName = xcfName
-            linkerOpts("-L${layout.buildDirectory}/swift", "-lNWBrowserBridge")
-        }
-    }
-
-    iosSimulatorArm64 {
-        compilations.getByName("main") {
-            cinterops {
-                val nwbrowser by creating {
-                    defFile(project.file("src/nativeInterop/cinterop/nwbrowser.def"))
-                    packageName("eu.aaltra.kmp.mdns.nwbrowser")
-                    includeDirs(project.file("src/nativeInterop/swift"))
-                }
-            }
-        }
-        binaries.framework {
-            baseName = xcfName
-        }
-    }
+    } }
 
     // Source set declarations.
     // Declaring a target automatically creates a source set with the same name. By default, the

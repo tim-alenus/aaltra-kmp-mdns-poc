@@ -1,12 +1,12 @@
 package eu.aaltra.kmp.mdns.shared
 
-import eu.aaltra.kmp.mdns.nwbrowser.NWBrowserBridge
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.addressOf
 import kotlinx.cinterop.usePinned
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
+import nativeBridge.NWBrowserBridge
 import platform.Foundation.NSData
 import platform.Foundation.NSLog
 import platform.posix.memcpy
