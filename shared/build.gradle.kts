@@ -6,6 +6,8 @@ plugins {
 
 kotlin {
 
+    //TODO also correctly configure other targets. Now only iosArm64 works fully. 
+
     // Target declarations - add or remove as needed below. These define
     // which platforms this KMP module supports.
     // See: https://kotlinlang.org/docs/multiplatform-discover-project.html#targets
