@@ -1,4 +1,7 @@
+@file:OptIn(ExperimentalSpmForKmpFeature::class)
+
 import io.github.frankois944.spmForKmp.swiftPackageConfig
+import io.github.frankois944.spmForKmp.utils.ExperimentalSpmForKmpFeature
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
